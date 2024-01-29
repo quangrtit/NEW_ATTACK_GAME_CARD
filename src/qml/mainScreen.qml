@@ -20,7 +20,7 @@ Rectangle {
         {
             if(card[i] === "/") id_l = i;
         }
-        if(card.slice(id_l + 1, id_r) === "ace") return 1;
+        if(card.slice(id_l + 1, id_r) === "ace") return 14;
         else if(card.slice(id_l + 1, id_r) === "2") return 2;
         else if(card.slice(id_l + 1, id_r) === "3") return 3;
         else if(card.slice(id_l + 1, id_r) === "4") return 4;
@@ -628,9 +628,9 @@ Rectangle {
                         // kiểm tra nếu hết bài có 2 khả năng:
                         // bài dưới sân vẫn còn => bốc đánh tiếp 
                         // bài dưới sân đã hết => myPlayer win, friend loss
-                        if(lisCardView.count === 0)
+                        if(listCardView.count === 0)
                         {
-                            while(lisCardView.count < 8 && countGetCard < arrCard.length)
+                            while(listCardView.count < 8 && countGetCard < arrCard.length)
                             {
                                 listCardView.append({
                                     "name": "",
@@ -651,6 +651,9 @@ Rectangle {
                                 myPlayer.sendAddCard(dataS);
                                 beginGame.visible = true;
                                 // cộng tiền gì đó 
+                                score1Text.text = (parseInt(score1Text.text) + parseInt(countCardFriend.text) * 1000).toString(); // 1 lá 1000 là mức cược 
+                                score2Text.text = (parseInt(score2Text.text) - parseInt(countCardFriend.text) * 1000).toString();
+                                myPlayer.setMoneyInDb(score1Text.text, usernamePlayer);
                             }
                         }
                     }
@@ -660,44 +663,51 @@ Rectangle {
         Rectangle {
             id: viewCard
             //width: root.width / 1.6
-            width: listCardView.count * 120 + listCardView.count * 0.5
-            height: root.height / 5
+            width: listCardView.count * 120 + listCardView.count * 0.5 > (8 * 120 + 0.5 * 8) ? (8 * 120 + 0.5 * 8) : (listCardView.count * 120 + listCardView.count * 0.5)
+            height: root.height / 5 + 21
             anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
             color: "transparent"
-            Row {
+            clip: true
+            ListView {
+                anchors.bottom: parent.bottom
                 width: parent.width
-                height: parent.height
+                height: root.height / 5
+                contentHeight: root.height / 5//parent.height
+                contentWidth: listCardView.count * 120 + listCardView.count * 0.5 > (8 * 120 + 0.5 * 8) ? (8 * 120 + 0.5 * 8) * 1.2 : (listCardView.count * 120 + listCardView.count * 0.5)
                 spacing: 0.5
-                Repeater {
-                    model: listCardView
-                    delegate: Rectangle {
-                        width: 120
-                        height: root.height / 5
-                        y: listCardView.get(index).y
-                        Image {
-                            anchors.fill: parent
-                            source: listCardView.get(index).src
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                }
+                model: listCardView
+                orientation: ListView.Horizontal
+                delegate: Rectangle {
+                    width: 120
+                    height: root.height / 5
+                    y: listCardView.get(index).y
+                    Image {
+                        anchors.fill: parent
+                        source: listCardView.get(index).src
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onEntered: {
+                            this.cursorShape = Qt.PointingHandCursor
                         }
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onEntered: {
-                                this.cursorShape = Qt.PointingHandCursor
-                            }
-                            onClicked: {
-                                for(var i = 0; i < listCardView.count; i++) 
+                        onClicked: {
+                            for(var i = 0; i < listCardView.count; i++) 
+                            {
+                                if(listCardView.get(i).y < 0 && i !== index) 
                                 {
-                                    if(listCardView.get(i).y < 0 && i !== index) 
-                                    {
-                                        listCardView.setProperty(i, "y", 0);
-                                    }
+                                    listCardView.setProperty(i, "y", 0);
                                 }
-                                listCardView.get(index).y === 0 ? listCardView.setProperty(index, "y", listCardView.get(index).y - 20) : listCardView.setProperty(index, "y", 0);
                             }
+                            listCardView.get(index).y === 0 ? listCardView.setProperty(index, "y", listCardView.get(index).y - 20) : listCardView.setProperty(index, "y", 0);
                         }
                     }
                 }
+                
             }
         }
     }
@@ -843,10 +853,13 @@ Rectangle {
                 countCardFriend.text = (parseInt(countCardFriend.text) + parseInt(dataReal) - countGetCard).toString();
                 countGetCard = parseInt(dataReal);
             }
-            else if(data.slice(0, 3) === "007")// tín hiệu đối phương hết cmn bài rồi bro
+            else if(data.slice(0, 3) === "007")// tín hiệu đối phương hết cmn bài rồi bro => thua nha
             {
                 // trừ tiền gì đó 
                 beginGame.visible = true;
+                score1Text.text = (parseInt(score1Text.text) - listCardView.count * 1000).toString(); // 1 lá 1000 là mức cược 
+                score2Text.text = (parseInt(score2Text.text) + listCardView.count * 1000).toString();
+                myPlayer.setMoneyInDb(score1Text.text, usernamePlayer);
             }
             
         }
